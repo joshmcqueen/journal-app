@@ -43,7 +43,7 @@ export default function JournalEditor({ date }: JournalEditorProps) {
           {isSaving ? 'Saving…' : 'Save'}
         </button>
         <button
-          className="btn"
+          className="btn btn-ai"
           onClick={polish}
           disabled={busy || !notes.trim()}
         >

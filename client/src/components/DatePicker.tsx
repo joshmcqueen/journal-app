@@ -14,6 +14,12 @@ function localToday(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function dayOfWeek(dateStr: string): string {
+  return DAYS[new Date(dateStr + 'T12:00:00').getDay()];
+}
+
 export default function DatePicker({ date, onChange }: DatePickerProps) {
   const today = localToday();
   const isToday = date >= today;
@@ -29,6 +35,7 @@ export default function DatePicker({ date, onChange }: DatePickerProps) {
         max={today}
         onChange={(e) => e.target.value && onChange(e.target.value)}
       />
+      <span className="date-day">{dayOfWeek(date)}</span>
       <button onClick={() => onChange(addDays(date, 1))} disabled={isToday} aria-label="Next day">
         ›
       </button>
