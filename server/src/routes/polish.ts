@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { streamText } from 'ai';
+import { generateText } from 'ai';
 import { anthropic } from '../services/ai.js';
+import { config } from '../config.js';
+import { POLISH_SYSTEM_PROMPT } from '../prompts.js';
 
 const router = Router();
 
@@ -12,14 +14,13 @@ router.post('/', async (req: Request, res: Response) => {
   }
 
   try {
-    const result = streamText({
-      model: anthropic('claude-sonnet-4-6'),
-      system:
-        'You are a helpful journaling assistant. Clean up and polish the user\'s rough notes into clear, well-structured prose. Preserve all facts and meaning. Use first person. Keep it personal and authentic. Return only the polished text with no preamble or explanation.',
+    const { text } = await generateText({
+      model: anthropic(config.CLAUDE_MODEL),
+      system: POLISH_SYSTEM_PROMPT,
       prompt,
     });
 
-    result.pipeDataStreamToResponse(res);
+    res.json({ text });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to polish entry.' });

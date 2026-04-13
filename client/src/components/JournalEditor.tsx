@@ -1,4 +1,4 @@
-import { useCompletion } from 'ai/react';
+import { useState } from 'react';
 import { useJournalEntry } from '../hooks/useJournalEntry';
 import StatusBar from './StatusBar';
 
@@ -8,13 +8,24 @@ interface JournalEditorProps {
 
 export default function JournalEditor({ date }: JournalEditorProps) {
   const { notes, setNotes, isLoading, isSaving, save, error, status } = useJournalEntry(date);
+  const [isPolishing, setIsPolishing] = useState(false);
 
-  const { complete, isLoading: isPolishing } = useCompletion({
-    api: '/api/polish',
-    onFinish: (_prompt, completion) => {
-      setNotes(completion);
-    },
-  });
+  const polish = async () => {
+    setIsPolishing(true);
+    try {
+      const res = await fetch('/api/polish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: notes }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNotes(data.text);
+      }
+    } finally {
+      setIsPolishing(false);
+    }
+  };
 
   const busy = isLoading || isSaving || isPolishing;
 
@@ -33,7 +44,7 @@ export default function JournalEditor({ date }: JournalEditorProps) {
         </button>
         <button
           className="btn"
-          onClick={() => complete(notes)}
+          onClick={polish}
           disabled={busy || !notes.trim()}
         >
           {isPolishing ? 'Polishing…' : '✨ Polish with AI'}
