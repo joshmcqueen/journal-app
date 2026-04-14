@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import DatePicker from './components/DatePicker';
 import JournalEditor from './components/JournalEditor';
+import CalendarView from './components/CalendarView';
 
 function localToday(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function localTodayMonth(): string {
+  return localToday().slice(0, 7);
 }
 
 function BookIcon() {
@@ -17,16 +22,43 @@ function BookIcon() {
 }
 
 export default function App() {
+  const [view, setView] = useState<'calendar' | 'editor'>('calendar');
   const [selectedDate, setSelectedDate] = useState(localToday);
+  const [calendarMonth, setCalendarMonth] = useState(localTodayMonth);
+
+  function openEntry(date: string) {
+    setSelectedDate(date);
+    setView('editor');
+  }
+
+  function goToCalendar() {
+    setCalendarMonth(selectedDate.slice(0, 7));
+    setView('calendar');
+  }
 
   return (
     <main>
       <header className="app-header">
         <BookIcon />
         <h1>Josh's Journal</h1>
+        {view === 'editor' && (
+          <button className="btn btn-back" onClick={goToCalendar}>
+            ← Calendar
+          </button>
+        )}
       </header>
-      <DatePicker date={selectedDate} onChange={setSelectedDate} />
-      <JournalEditor date={selectedDate} />
+      {view === 'calendar' ? (
+        <CalendarView
+          yearMonth={calendarMonth}
+          onYearMonthChange={setCalendarMonth}
+          onSelectDate={openEntry}
+        />
+      ) : (
+        <>
+          <DatePicker date={selectedDate} onChange={setSelectedDate} />
+          <JournalEditor date={selectedDate} />
+        </>
+      )}
     </main>
   );
 }

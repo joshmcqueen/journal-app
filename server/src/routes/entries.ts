@@ -1,9 +1,25 @@
 import { Router } from 'express';
-import { getEntry, saveEntry } from '../services/sheets.js';
+import { getEntry, saveEntry, getMonthEntries } from '../services/sheets.js';
 
 const router = Router();
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MONTH_RE = /^\d{4}-\d{2}$/;
+
+router.get('/month/:yearMonth', async (req, res) => {
+  const yearMonth = req.params['yearMonth'] as string;
+  if (!MONTH_RE.test(yearMonth)) {
+    res.status(400).json({ error: 'Invalid month format. Use YYYY-MM.' });
+    return;
+  }
+  try {
+    const dates = await getMonthEntries(yearMonth);
+    res.json({ dates });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch month entries.' });
+  }
+});
 
 router.get('/:date', async (req, res) => {
   const date = req.params['date'] as string;

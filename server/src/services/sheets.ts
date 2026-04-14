@@ -59,6 +59,24 @@ export async function getEntry(date: string): Promise<string> {
   return row?.[1] ?? '';
 }
 
+export async function getMonthEntries(yearMonth: string): Promise<string[]> {
+  const year = yearMonth.split('-')[0];
+  await ensureYearTabExists(year);
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: `${year}!A:B`,
+  });
+
+  const rows = res.data.values ?? [];
+  return rows
+    .filter((r) => {
+      const date = normalizeDate(String(r[0] ?? ''));
+      return date.startsWith(yearMonth) && r[1] && String(r[1]).trim() !== '';
+    })
+    .map((r) => normalizeDate(String(r[0])));
+}
+
 export async function saveEntry(date: string, notes: string): Promise<void> {
   const year = date.split('-')[0];
   await ensureYearTabExists(year);
