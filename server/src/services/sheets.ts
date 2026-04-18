@@ -55,7 +55,13 @@ export async function getEntry(date: string): Promise<string> {
   return row?.[1] ?? '';
 }
 
-export async function getMonthEntries(yearMonth: string): Promise<string[]> {
+export interface MonthEntry {
+  date: string;
+  wordCount: number;
+  preview: string;
+}
+
+export async function getMonthEntries(yearMonth: string): Promise<MonthEntry[]> {
   const year = yearMonth.split('-')[0];
   await ensureYearTabExists(year);
 
@@ -70,7 +76,16 @@ export async function getMonthEntries(yearMonth: string): Promise<string[]> {
       const date = normalizeDate(String(r[0] ?? ''));
       return date.startsWith(yearMonth) && r[1] && String(r[1]).trim() !== '';
     })
-    .map((r) => normalizeDate(String(r[0])));
+    .map((r) => {
+      const content = String(r[1] ?? '');
+      const words = content.trim().split(/\s+/).filter(Boolean);
+      const preview = content.length > 120 ? content.slice(0, 120) + '…' : content;
+      return {
+        date: normalizeDate(String(r[0])),
+        wordCount: words.length,
+        preview,
+      };
+    });
 }
 
 export async function saveEntry(date: string, notes: string): Promise<void> {
