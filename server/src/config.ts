@@ -15,6 +15,6 @@ export const config = {
   ANTHROPIC_API_KEY: required('ANTHROPIC_API_KEY'),
   CLAUDE_MODEL: required('CLAUDE_MODEL'),
   GOOGLE_SHEET_ID: required('GOOGLE_SHEET_ID'),
-  GOOGLE_SERVICE_ACCOUNT_KEY_PATH: required('GOOGLE_SERVICE_ACCOUNT_KEY_PATH'),
-  PORT: parseInt(process.env.PORT ?? '3001', 10),
+  GOOGLE_CREDENTIALS_JSON: required('GOOGLE_CREDENTIALS_JSON'),
+  PORT: parseInt(process.env.PORT ?? '3000', 10),
 };

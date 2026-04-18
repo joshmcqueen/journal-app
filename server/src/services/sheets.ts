@@ -1,12 +1,8 @@
 import { google } from 'googleapis';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { config } from '../config.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 const auth = new google.auth.GoogleAuth({
-  keyFile: path.resolve(__dirname, '../../../', config.GOOGLE_SERVICE_ACCOUNT_KEY_PATH),
+  credentials: JSON.parse(config.GOOGLE_CREDENTIALS_JSON),
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 

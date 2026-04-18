@@ -4,5 +4,6 @@ client/dist/
 server/dist/
 service-account-key.json
 josh-journal-app-972af0600b12.json
+josh-journal-app.json
 *-key.json
 *.local
