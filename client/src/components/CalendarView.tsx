@@ -26,6 +26,11 @@ function getDayOfWeek(dateStr: string): string {
   return d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
 }
 
+function getDayOfWeekFull(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+}
+
 const DAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 interface Props {
@@ -135,7 +140,7 @@ export default function CalendarView({ yearMonth, onYearMonthChange, onSelectDat
                     <div className={`timeline-dot${isToday ? ' accent' : ''}`} />
                     <button className="timeline-card" onClick={() => onSelectDate(dateStr)}>
                       <div className="timeline-card-meta">
-                        <span className="timeline-card-wday">{wday}</span>
+                        <span className="timeline-card-wday">{getDayOfWeekFull(dateStr)}</span>
                         <span className="timeline-card-wc">{meta.wordCount} words</span>
                       </div>
                       <p className="timeline-card-preview">{meta.preview}</p>
