@@ -13,8 +13,8 @@ router.get('/month/:yearMonth', async (req, res) => {
     return;
   }
   try {
-    const dates = await getMonthEntries(yearMonth);
-    res.json({ dates });
+    const entries = await getMonthEntries(yearMonth);
+    res.json({ entries });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch month entries.' });

@@ -1,4 +1,5 @@
 import { useMonthEntries } from '../hooks/useMonthEntries';
+import { ChevronLeftIcon, ChevronRightIcon } from './Icons';
 
 function localToday(): string {
   const d = new Date();
@@ -15,29 +16,35 @@ function addMonths(yearMonth: string, delta: number): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function formatMonthTitle(yearMonth: string): string {
+function getMonthName(yearMonth: string): string {
   const [y, m] = yearMonth.split('-').map(Number);
-  return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long' });
 }
 
-const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+function getDayOfWeek(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+}
+
+const DAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 interface Props {
   yearMonth: string;
-  onYearMonthChange: (yearMonth: string) => void;
+  onYearMonthChange: (ym: string) => void;
   onSelectDate: (date: string) => void;
+  layout: 'grid' | 'timeline';
 }
 
-export default function CalendarView({ yearMonth, onYearMonthChange, onSelectDate }: Props) {
-  const { dates, loading } = useMonthEntries(yearMonth);
+export default function CalendarView({ yearMonth, onYearMonthChange, onSelectDate, layout }: Props) {
+  const { entries, loading, totalWords, streak, longestEntry } = useMonthEntries(yearMonth);
   const today = localToday();
   const currentMonth = localTodayMonth();
 
   const [y, m] = yearMonth.split('-').map(Number);
-  const firstDay = new Date(y, m - 1, 1).getDay(); // 0=Sun
+  const firstDay = new Date(y, m - 1, 1).getDay();
   const daysInMonth = new Date(y, m, 0).getDate();
+  const entryCount = entries.size;
 
-  // Build grid cells: nulls for leading blanks, then day numbers
   const cells: (number | null)[] = [
     ...Array(firstDay).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
@@ -47,44 +54,117 @@ export default function CalendarView({ yearMonth, onYearMonthChange, onSelectDat
     return `${yearMonth}-${String(day).padStart(2, '0')}`;
   }
 
-  return (
-    <div className="calendar-wrapper">
-      <div className="calendar-nav">
+  const subtitle = `${y} · ${entryCount} ${entryCount === 1 ? 'entry' : 'entries'}`;
+
+  const monthNav = (
+    <div className="cal-nav">
+      <div className="cal-nav-title">
+        <h2>{getMonthName(yearMonth)}</h2>
+        {!loading && <p>{subtitle}</p>}
+      </div>
+      <div className="cal-nav-arrows">
         <button
-          className="btn calendar-nav-btn"
+          className="icon-btn"
           onClick={() => onYearMonthChange(addMonths(yearMonth, -1))}
           aria-label="Previous month"
         >
-          ‹
+          <ChevronLeftIcon />
         </button>
-        <span className="calendar-month-title">{formatMonthTitle(yearMonth)}</span>
         <button
-          className="btn calendar-nav-btn"
+          className="icon-btn"
           onClick={() => onYearMonthChange(addMonths(yearMonth, 1))}
           disabled={yearMonth >= currentMonth}
           aria-label="Next month"
         >
-          ›
+          <ChevronRightIcon />
         </button>
       </div>
+    </div>
+  );
 
+  const statsCard = !loading && (
+    <div className="stats-card">
+      <div className="stats-card-header">
+        <span className="stats-card-label">This Month</span>
+        {streak > 0 && <span className="stats-card-streak">{streak} day streak</span>}
+      </div>
+      <div className="stats-card-cols">
+        <div className="stats-col">
+          <span className="stats-col-label">Entries</span>
+          <span className="stats-col-value">{entryCount}</span>
+        </div>
+        <div className="stats-col">
+          <span className="stats-col-label">Words</span>
+          <span className="stats-col-value">{totalWords.toLocaleString()}</span>
+        </div>
+        <div className="stats-col">
+          <span className="stats-col-label">Longest</span>
+          <span className={`stats-col-value${longestEntry > 0 ? ' accent' : ''}`}>{longestEntry}</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (layout === 'timeline') {
+    const entryDays = Array.from(entries.keys()).sort((a, b) => b.localeCompare(a));
+    return (
+      <div className="view-fade">
+        <div className="calendar-wrapper" style={{ paddingBottom: 0 }}>
+          {monthNav}
+        </div>
+        <div className="timeline-wrapper">
+          <div className="timeline-spine" />
+          {loading
+            ? Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="timeline-entry">
+                  <div className="timeline-gutter" />
+                  <div className="timeline-card calendar-day-skeleton" style={{ height: 72, border: 'none' }} />
+                </div>
+              ))
+            : entryDays.map((dateStr) => {
+                const meta = entries.get(dateStr)!;
+                const day = parseInt(dateStr.split('-')[2], 10);
+                const isToday = dateStr === today;
+                const wday = getDayOfWeek(dateStr);
+                return (
+                  <div key={dateStr} className="timeline-entry">
+                    <div className="timeline-gutter">
+                      <span className={`timeline-day-num${isToday ? ' accent' : ''}`}>{day}</span>
+                      <span className="timeline-day-wday">{wday.slice(0, 3)}</span>
+                    </div>
+                    <div className={`timeline-dot${isToday ? ' accent' : ''}`} />
+                    <button className="timeline-card" onClick={() => onSelectDate(dateStr)}>
+                      <div className="timeline-card-meta">
+                        <span className="timeline-card-wday">{wday}</span>
+                        <span className="timeline-card-wc">{meta.wordCount} words</span>
+                      </div>
+                      <p className="timeline-card-preview">{meta.preview}</p>
+                    </button>
+                  </div>
+                );
+              })}
+        </div>
+        <div style={{ padding: '0 20px' }}>{statsCard}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="calendar-wrapper view-fade">
+      {monthNav}
       <div className="calendar-grid" role="grid">
-        {DAY_HEADERS.map((h) => (
-          <div key={h} className="calendar-day-header">{h}</div>
+        {DAY_HEADERS.map((h, i) => (
+          <div key={i} className="calendar-day-header">{h}</div>
         ))}
-
         {loading
           ? Array.from({ length: 35 }).map((_, i) => (
-              <div key={i} className="calendar-day calendar-day-skeleton" />
+              <div key={i} className="calendar-day-skeleton" />
             ))
           : cells.map((day, i) => {
-              if (day === null) {
-                return <div key={`blank-${i}`} className="calendar-day calendar-day-empty" />;
-              }
+              if (day === null) return <div key={`blank-${i}`} />;
               const dateStr = dayToDate(day);
-              const hasEntry = dates.has(dateStr);
+              const hasEntry = entries.has(dateStr);
               const isToday = dateStr === today;
-
               return (
                 <button
                   key={dateStr}
@@ -93,11 +173,12 @@ export default function CalendarView({ yearMonth, onYearMonthChange, onSelectDat
                   aria-label={dateStr}
                 >
                   <span className="calendar-day-num">{day}</span>
-                  {hasEntry && <span className="calendar-entry-dot" aria-hidden="true" />}
+                  {(hasEntry || isToday) && <span className="calendar-entry-dot" />}
                 </button>
               );
             })}
       </div>
+      {statsCard}
     </div>
   );
 }

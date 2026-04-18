@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import DatePicker from './components/DatePicker';
-import JournalEditor from './components/JournalEditor';
+import { BookIcon, CalendarIcon, TimelineIcon, PlusIcon } from './components/Icons';
 import CalendarView from './components/CalendarView';
+import JournalEditor from './components/JournalEditor';
+import { useMonthEntries } from './hooks/useMonthEntries';
 
 function localToday(): string {
   const d = new Date();
@@ -12,19 +13,18 @@ function localTodayMonth(): string {
   return localToday().slice(0, 7);
 }
 
-function BookIcon() {
-  return (
-    <svg className="book-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-    </svg>
-  );
-}
-
 export default function App() {
   const [view, setView] = useState<'calendar' | 'editor'>('calendar');
+  const [layout, setLayout] = useState<'grid' | 'timeline'>('grid');
   const [selectedDate, setSelectedDate] = useState(localToday);
   const [calendarMonth, setCalendarMonth] = useState(localTodayMonth);
+
+  const { entries, streak } = useMonthEntries(selectedDate.slice(0, 7));
+
+  const sortedEntryDates = Array.from(entries.keys()).sort();
+  const selectedIdx = sortedEntryDates.indexOf(selectedDate);
+  const prevDate = selectedIdx > 0 ? sortedEntryDates[selectedIdx - 1] : null;
+  const nextDate = selectedIdx < sortedEntryDates.length - 1 ? sortedEntryDates[selectedIdx + 1] : null;
 
   function openEntry(date: string) {
     setSelectedDate(date);
@@ -36,28 +36,49 @@ export default function App() {
     setView('calendar');
   }
 
+  function openToday() {
+    const today = localToday();
+    setSelectedDate(today);
+    setCalendarMonth(today.slice(0, 7));
+    setView('editor');
+  }
+
   return (
-    <main>
-      <header className="app-header">
-        <BookIcon />
-        <h1>Josh's Journal</h1>
-        {view === 'editor' && (
-          <button className="btn btn-back" onClick={goToCalendar}>
-            ← Calendar
-          </button>
-        )}
-      </header>
+    <main style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       {view === 'calendar' ? (
-        <CalendarView
-          yearMonth={calendarMonth}
-          onYearMonthChange={setCalendarMonth}
-          onSelectDate={openEntry}
-        />
-      ) : (
         <>
-          <DatePicker date={selectedDate} onChange={setSelectedDate} />
-          <JournalEditor date={selectedDate} />
+          <header className="app-header">
+            <BookIcon size={22} />
+            <h1 className="app-header-title">Josh's Journal</h1>
+            <div className="app-header-actions">
+              <button
+                className="icon-btn"
+                onClick={() => setLayout(l => l === 'grid' ? 'timeline' : 'grid')}
+                aria-label={layout === 'grid' ? 'Switch to timeline' : 'Switch to grid'}
+              >
+                {layout === 'grid' ? <TimelineIcon /> : <CalendarIcon />}
+              </button>
+              <button className="icon-btn icon-btn-accent" onClick={openToday} aria-label="New entry">
+                <PlusIcon />
+              </button>
+            </div>
+          </header>
+          <CalendarView
+            yearMonth={calendarMonth}
+            onYearMonthChange={setCalendarMonth}
+            onSelectDate={openEntry}
+            layout={layout}
+          />
         </>
+      ) : (
+        <JournalEditor
+          date={selectedDate}
+          onBack={goToCalendar}
+          onNavigate={openEntry}
+          prevDate={prevDate}
+          nextDate={nextDate}
+          streak={streak}
+        />
       )}
     </main>
   );

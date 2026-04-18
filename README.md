@@ -1,6 +1,14 @@
 # Journal App
 
-Personal daily journaling app. Write entries by date, save to Google Sheets, optionally polish text with Claude.
+Personal daily journaling app. Navigate a calendar, write entries by date, save to Google Sheets, and optionally polish text with Claude.
+
+## Features
+
+- **Calendar view** — month grid or timeline feed; dot indicators for days with entries; today highlight
+- **Stats card** — entry count, total words, and longest streak for the viewed month
+- **Timeline view** — newest-first feed with entry previews and word counts
+- **Entry editor** — live word count, last-saved timestamp, prev/next entry navigation
+- **Polish with AI** — rewrites your entry via Claude with a shimmer animation
 
 ## Setup
 
