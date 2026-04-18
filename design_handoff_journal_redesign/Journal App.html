@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Josh's Journal — Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Geist:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #09090B; min-height: 100vh; font-family: 'Inter', -apple-system, system-ui, sans-serif; }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  button { font-family: inherit; }
+  @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  /* remove iOS keyboard/status from our custom dark frame - we draw our own */
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="app.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accent": "sage",
+  "font": "inter",
+  "bg": "ink",
+  "layout": "grid"
+}/*EDITMODE-END*/;
+
+const { useState, useEffect } = React;
+
+function App() {
+  const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
+  const [showTweaks, setShowTweaks] = useState(false);
+  const [screen, setScreen] = useState('cal'); // 'cal' | 'entry'
+  const [day, setDay] = useState(15);
+
+  // restore screen
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem('journal_screen');
+      const d = localStorage.getItem('journal_day');
+      if (s) setScreen(s);
+      if (d) setDay(Number(d));
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem('journal_screen', screen);
+      localStorage.setItem('journal_day', String(day));
+    } catch {}
+  }, [screen, day]);
+
+  // Tweak mode host wiring
+  useEffect(() => {
+    const onMsg = (e) => {
+      if (!e.data) return;
+      if (e.data.type === '__activate_edit_mode') setShowTweaks(true);
+      if (e.data.type === '__deactivate_edit_mode') setShowTweaks(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const updateTweak = (key, val) => {
+    setTweaks(prev => {
+      const next = { ...prev, [key]: val };
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: val } }, '*');
+      return next;
+    });
+  };
+
+  const t = {
+    accent: ACCENTS[tweaks.accent] || ACCENTS.peach,
+    font:   FONTS[tweaks.font] || FONTS.inter,
+    bg:     BGS[tweaks.bg] || BGS.jet,
+    layout: tweaks.layout || 'grid',
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '32px 16px', gap: 40, flexWrap: 'wrap',
+      background: 'radial-gradient(1200px 600px at 50% -10%, rgba(255,170,120,0.04), transparent 60%), #09090B',
+      fontFamily: t.font.stack,
+    }}>
+      {/* Phone */}
+      <div style={{ position: 'relative' }}>
+        <Phone t={t} screen={screen} setScreen={setScreen} day={day} setDay={setDay} layout={tweaks.layout || 'grid'} setLayout={(v) => updateTweak('layout', v)} />
+        <PhoneCaption t={t} screen={screen} layout={tweaks.layout || 'grid'} />
+      </div>
+
+      {/* Tweaks panel */}
+      {showTweaks && (
+        <TweaksPanel tweaks={tweaks} update={updateTweak} onClose={() => setShowTweaks(false)} />
+      )}
+    </div>
+  );
+}
+
+function PhoneCaption({ t, screen, layout }) {
+  return (
+    <div style={{
+      textAlign: 'center', marginTop: 18,
+      fontFamily: t.font.stack, fontSize: 12,
+      color: 'rgba(255,255,255,0.35)', letterSpacing: 0.5,
+      textTransform: 'uppercase',
+    }}>
+      {screen === 'cal' ? (layout === 'grid' ? 'Calendar · Grid' : 'Calendar · Timeline') : 'Entry view'}
+    </div>
+  );
+}
+
+function Phone({ t, screen, setScreen, day, setDay, layout, setLayout }) {
+  return (
+    <div style={{
+      width: 402, height: 874, borderRadius: 48, overflow: 'hidden',
+      position: 'relative', background: t.bg.base,
+      boxShadow: `0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06), inset 0 0 0 8px #000`,
+      fontFamily: t.font.stack,
+    }}>
+      {/* outer bezel */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 48,
+        boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.04)', pointerEvents: 'none', zIndex: 100,
+      }} />
+
+      {/* dynamic island */}
+      <div style={{
+        position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+        width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 80,
+      }} />
+
+      {/* status bar */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 70,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '18px 32px 0', color: '#fff', fontSize: 15, fontWeight: 600,
+        fontVariantNumeric: 'tabular-nums',
+      }}>
+        <span>9:41</span>
+        <span style={{ width: 120 }} />
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: 0.9 }}>
+          <svg width="18" height="10" viewBox="0 0 18 10"><rect x="0" y="6" width="3" height="4" rx="0.5" fill="#fff"/><rect x="5" y="4" width="3" height="6" rx="0.5" fill="#fff"/><rect x="10" y="2" width="3" height="8" rx="0.5" fill="#fff"/><rect x="15" y="0" width="3" height="10" rx="0.5" fill="#fff"/></svg>
+          <svg width="24" height="11" viewBox="0 0 24 11"><rect x="0.5" y="0.5" width="20" height="10" rx="2.5" fill="none" stroke="#fff" strokeOpacity="0.4"/><rect x="2" y="2" width="17" height="7" rx="1.5" fill="#fff"/></svg>
+        </span>
+      </div>
+
+      {/* screen contents */}
+      <div key={screen === 'entry' ? `entry-${day}` : screen} style={{
+        height: '100%', display: 'flex', flexDirection: 'column',
+        color: '#fff',
+        animation: 'fadeIn 0.3s ease',
+      }}>
+        {screen === 'cal' ? (
+          <CalendarScreen t={t} onPick={(d) => { setDay(d); setScreen('entry'); }} setScreen={setScreen} layout={layout} setLayout={setLayout} />
+        ) : (
+          (() => {
+            const days = Object.keys(ENTRIES).map(Number).sort((a,b) => a-b);
+            const idx = days.indexOf(day);
+            const prev = idx > 0 ? days[idx-1] : null;
+            const next = idx >= 0 && idx < days.length-1 ? days[idx+1] : null;
+            return <EntryScreen
+              t={t} day={day} onBack={() => setScreen('cal')}
+              onPrev={prev ? () => setDay(prev) : undefined}
+              onNext={next ? () => setDay(next) : undefined}
+              hasPrev={!!prev} hasNext={!!next}
+            />;
+          })()
+        )}
+      </div>
+
+      {/* home indicator */}
+      <div style={{
+        position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
+        width: 139, height: 5, borderRadius: 100, background: 'rgba(255,255,255,0.4)', zIndex: 90,
+      }} />
+    </div>
+  );
+}
+
+function CalendarScreen({ t, onPick, setScreen, layout, setLayout }) {
+  return (
+    <>
+      <AppHeader title="Josh's Journal" t={t} right={
+        <>
+          <HeaderButton t={t} onClick={() => setLayout(layout === 'grid' ? 'timeline' : 'grid')} title={layout === 'grid' ? 'Switch to timeline' : 'Switch to grid'}>
+            {layout === 'grid' ? Icon.timeline() : Icon.calendar()}
+          </HeaderButton>
+          <HeaderButton t={t} active>{Icon.plus(t.accent.hue)}</HeaderButton>
+        </>
+      }/>
+      <div style={{ flex: 1, overflow: 'auto', paddingBottom: 40 }}>
+        {layout === 'grid' ? (
+          <CalendarGrid t={t} onPick={onPick} />
+        ) : (
+          <CalendarTimeline t={t} onPick={onPick} />
+        )}
+      </div>
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Tweaks panel
+// ─────────────────────────────────────────────────────────────
+function TweaksPanel({ tweaks, update, onClose }) {
+  return (
+    <div style={{
+      position: 'fixed', right: 20, bottom: 20, width: 280,
+      background: '#0F0F11', border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: 16, padding: 16, zIndex: 1000,
+      boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+      fontFamily: "'Inter', -apple-system, system-ui, sans-serif", color: '#fff',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 16,
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: -0.2 }}>Tweaks</div>
+        <button onClick={onClose} style={{
+          background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.5)',
+          cursor: 'pointer', fontSize: 16, padding: 0, lineHeight: 1,
+        }}>×</button>
+      </div>
+
+      <TweakSection label="Accent">
+        <div style={{ display: 'flex', gap: 8 }}>
+          {Object.entries(ACCENTS).map(([k, v]) => (
+            <button key={k} onClick={() => update('accent', k)} title={v.name} style={{
+              width: 32, height: 32, borderRadius: 10, cursor: 'pointer',
+              background: v.hue, border: 'none', padding: 0,
+              outline: tweaks.accent === k ? '2px solid #fff' : '2px solid transparent',
+              outlineOffset: 2,
+            }} />
+          ))}
+        </div>
+      </TweakSection>
+
+      <TweakSection label="Font">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+          {Object.entries(FONTS).map(([k, v]) => (
+            <button key={k} onClick={() => update('font', k)} style={{
+              padding: '10px 8px', borderRadius: 10, cursor: 'pointer',
+              background: tweaks.font === k ? 'rgba(255,255,255,0.08)' : 'transparent',
+              border: `1px solid ${tweaks.font === k ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)'}`,
+              color: '#fff', fontFamily: v.stack, fontSize: 11, fontWeight: 500,
+            }}>{v.name}</button>
+          ))}
+        </div>
+      </TweakSection>
+
+      <TweakSection label="Background">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+          {Object.entries(BGS).map(([k, v]) => (
+            <button key={k} onClick={() => update('bg', k)} style={{
+              padding: '10px 8px', borderRadius: 10, cursor: 'pointer',
+              background: tweaks.bg === k ? 'rgba(255,255,255,0.08)' : 'transparent',
+              border: `1px solid ${tweaks.bg === k ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)'}`,
+              color: '#fff', fontSize: 11, fontWeight: 500,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+            }}>
+              <div style={{ width: '100%', height: 18, borderRadius: 4, background: v.base, border: '1px solid rgba(255,255,255,0.08)' }} />
+              {v.name}
+            </button>
+          ))}
+        </div>
+      </TweakSection>
+
+      <TweakSection label="Calendar layout">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          {['grid', 'timeline'].map(k => (
+            <button key={k} onClick={() => update('layout', k)} style={{
+              padding: '10px', borderRadius: 10, cursor: 'pointer',
+              background: tweaks.layout === k ? 'rgba(255,255,255,0.08)' : 'transparent',
+              border: `1px solid ${tweaks.layout === k ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)'}`,
+              color: '#fff', fontSize: 11, fontWeight: 500, textTransform: 'capitalize',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+              {k === 'grid' ? Icon.calendar() : Icon.timeline()}
+              {k}
+            </button>
+          ))}
+        </div>
+      </TweakSection>
+    </div>
+  );
+}
+
+function TweakSection({ label, children }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{
+        fontSize: 10, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1,
+        color: 'rgba(255,255,255,0.45)', marginBottom: 8,
+      }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
