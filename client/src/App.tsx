@@ -13,6 +13,12 @@ function localTodayMonth(): string {
   return localToday().slice(0, 7);
 }
 
+function addDays(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export default function App() {
   const [view, setView] = useState<'calendar' | 'editor'>('calendar');
   const [layout, setLayout] = useState<'grid' | 'timeline'>('grid');
@@ -21,10 +27,9 @@ export default function App() {
 
   const { entries, streak } = useMonthEntries(selectedDate.slice(0, 7));
 
-  const sortedEntryDates = Array.from(entries.keys()).sort();
-  const selectedIdx = sortedEntryDates.indexOf(selectedDate);
-  const prevDate = selectedIdx > 0 ? sortedEntryDates[selectedIdx - 1] : null;
-  const nextDate = selectedIdx < sortedEntryDates.length - 1 ? sortedEntryDates[selectedIdx + 1] : null;
+  const today = localToday();
+  const prevDate = addDays(selectedDate, -1);
+  const nextDate = selectedDate < today ? addDays(selectedDate, 1) : null;
 
   function openEntry(date: string) {
     setSelectedDate(date);
