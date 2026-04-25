@@ -202,6 +202,17 @@ html, body {
   background: var(--accent);
 }
 
+.calendar-moon-ghost {
+  position: absolute;
+  width: 68%;
+  height: 68%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.13;
+  pointer-events: none;
+}
+
 .calendar-day-skeleton {
   background: var(--bg-raised);
   opacity: 0.3;
@@ -331,6 +342,10 @@ html, body {
   text-transform: uppercase;
   color: var(--text-4);
   margin-top: 2px;
+}
+
+.timeline-day-moon {
+  margin-top: 5px;
 }
 
 .timeline-dot {

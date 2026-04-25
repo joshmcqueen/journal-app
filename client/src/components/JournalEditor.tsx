@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useJournalEntry } from '../hooks/useJournalEntry';
 import { ChevronLeftIcon, ChevronRightIcon, SparkleIcon } from './Icons';
+import MoonIcon from './MoonIcon';
+import { getMoonPhase } from '../utils/moonPhase';
 
 interface Props {
   date: string;
@@ -75,6 +77,7 @@ export default function JournalEditor({ date, onBack, onNavigate, prevDate, next
       </div>
 
       <div className="date-chip">
+        <MoonIcon phase={getMoonPhase(date)} size={14} />
         <span>{formatDateChip(date)}</span>
         {streak > 0 && (
           <>

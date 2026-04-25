@@ -1,5 +1,7 @@
 import { useMonthEntries } from '../hooks/useMonthEntries';
 import { ChevronLeftIcon, ChevronRightIcon } from './Icons';
+import MoonIcon from './MoonIcon';
+import { getMoonPhase } from '../utils/moonPhase';
 
 function localToday(): string {
   const d = new Date();
@@ -136,6 +138,7 @@ export default function CalendarView({ yearMonth, onYearMonthChange, onSelectDat
                     <div className="timeline-gutter">
                       <span className={`timeline-day-num${isToday ? ' accent' : ''}`}>{day}</span>
                       <span className="timeline-day-wday">{wday.slice(0, 3)}</span>
+                      <MoonIcon phase={getMoonPhase(dateStr)} size={13} className="timeline-day-moon" />
                     </div>
                     <div className={`timeline-dot${isToday ? ' accent' : ''}`} />
                     <button className="timeline-card" onClick={() => onSelectDate(dateStr)}>
@@ -177,6 +180,7 @@ export default function CalendarView({ yearMonth, onYearMonthChange, onSelectDat
                   onClick={() => onSelectDate(dateStr)}
                   aria-label={dateStr}
                 >
+                  <MoonIcon phase={getMoonPhase(dateStr)} variant="ghost" />
                   <span className="calendar-day-num">{day}</span>
                   {(hasEntry || isToday) && <span className="calendar-entry-dot" />}
                 </button>
